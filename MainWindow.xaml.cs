@@ -17,6 +17,10 @@ namespace Microsoft.Samples.Kinect.BodyBasics
     using System.Windows.Media.Imaging;
     using Microsoft.Kinect;
 
+    //new, JN 12.2019
+    using Newtonsoft.Json;
+    using System.Text;
+
     /// <summary>
     /// Interaction logic for MainWindow
     /// </summary>
@@ -127,6 +131,16 @@ namespace Microsoft.Samples.Kinect.BodyBasics
         /// </summary>
         private string statusText = null;
 
+        //JN, 12.2019 - Added Code
+        //json stuff - JN 12.2019
+        private StringBuilder sb;
+        private StringWriter sw;
+
+        private JsonWriter writer;
+
+        //UDP Network socket
+        // ....
+
         /// <summary>
         /// Initializes a new instance of the MainWindow class.
         /// </summary>
@@ -216,6 +230,16 @@ namespace Microsoft.Samples.Kinect.BodyBasics
 
             // initialize the components (controls) of the window
             this.InitializeComponent();
+
+            //JN, 12.2019 - Added Code
+            //json stuff - JN 12.2019
+            this.sb = new StringBuilder();
+            this.sw = new StringWriter(sb);
+            this.writer = new JsonTextWriter(sw)
+            {
+                Formatting = Formatting.Indented
+            };
+
         }
 
         /// <summary>
@@ -300,7 +324,26 @@ namespace Microsoft.Samples.Kinect.BodyBasics
         /// <param name="e">event arguments</param>
         private void Reader_FrameArrived(object sender, BodyFrameArrivedEventArgs e)
         {
+            int p = 0;
             bool dataReceived = false;
+
+            writer.WriteStartObject();
+
+            writer.WritePropertyName("capture_area");
+            //writer.WriteValue("capture_area");
+
+            writer.WriteStartArray();
+
+            //writer.WritePropertyName("width");
+            writer.WriteValue(displayWidth);
+
+            //writer.WritePropertyName("height");
+            writer.WriteValue(displayHeight);
+
+            writer.WriteEndArray();
+
+            writer.WritePropertyName("Persons");
+            writer.WriteStartArray();
 
             using (BodyFrame bodyFrame = e.FrameReference.AcquireFrame())
             {
@@ -329,6 +372,10 @@ namespace Microsoft.Samples.Kinect.BodyBasics
                     int penIndex = 0;
                     foreach (Body body in this.bodies)
                     {
+                        writer.WriteValue("Person "+ p++);
+
+                        writer.WriteStartArray();
+
                         Pen drawPen = this.bodyColors[penIndex++];
 
                         if (body.IsTracked)
@@ -342,6 +389,11 @@ namespace Microsoft.Samples.Kinect.BodyBasics
 
                             foreach (JointType jointType in joints.Keys)
                             {
+
+                                //writer.WritePropertyName("keypoint");
+                                writer.WriteValue(jointType);
+
+
                                 // sometimes the depth(Z) of an inferred joint may show as negative
                                 // clamp down to 0.1f to prevent coordinatemapper from returning (-Infinity, -Infinity)
                                 CameraSpacePoint position = joints[jointType].Position;
@@ -352,21 +404,39 @@ namespace Microsoft.Samples.Kinect.BodyBasics
 
                                 DepthSpacePoint depthSpacePoint = this.coordinateMapper.MapCameraPointToDepthSpace(position);
                                 jointPoints[jointType] = new Point(depthSpacePoint.X, depthSpacePoint.Y);
+
+                                //writer.WritePropertyName("x");
+                                writer.WriteValue(depthSpacePoint.X);
+
+                                //writer.WritePropertyName("y");
+                                writer.WriteValue(depthSpacePoint.Y);
+
                             }
 
                             //this is where we start ...
+                            
+
 
                             this.DrawBody(joints, jointPoints, dc, drawPen);
 
                             this.DrawHand(body.HandLeftState, jointPoints[JointType.HandLeft], dc);
                             this.DrawHand(body.HandRightState, jointPoints[JointType.HandRight], dc);
                         }
+
+                        writer.WriteEndArray();
                     }
 
                     // prevent drawing outside of our render area
                     this.drawingGroup.ClipGeometry = new RectangleGeometry(new Rect(0.0, 0.0, this.displayWidth, this.displayHeight));
                 }
             }
+
+            writer.WriteEndArray();
+            writer.WriteEndObject();
+
+            writer.Flush();
+            Debug.Print(sw.ToString());
+
         }
 
         /// <summary>
