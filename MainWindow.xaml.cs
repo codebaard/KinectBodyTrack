@@ -139,7 +139,10 @@ namespace Microsoft.Samples.Kinect.BodyBasics
         private JsonWriter writer;
 
         //UDP Network socket
-        // ....
+        private TCPSocket socket;
+
+        //commandline args
+        String[] args = App.Args;
 
         /// <summary>
         /// Initializes a new instance of the MainWindow class.
@@ -240,6 +243,11 @@ namespace Microsoft.Samples.Kinect.BodyBasics
                 Formatting = Formatting.Indented
             };
 
+            //args provided? use them. otherwise use localhost:4444
+            if (args.Length >= 2) this.socket = new TCPSocket(args[0], Convert.ToInt16(args[1]));
+            else this.socket = new TCPSocket();
+
+
         }
 
         /// <summary>
@@ -327,23 +335,23 @@ namespace Microsoft.Samples.Kinect.BodyBasics
             int p = 0;
             bool dataReceived = false;
 
-            writer.WriteStartObject();
+            writer.WriteStartObjectAsync();
 
-            writer.WritePropertyName("capture_area");
+            writer.WritePropertyNameAsync("capture_area");
             //writer.WriteValue("capture_area");
 
-            writer.WriteStartArray();
+            writer.WriteStartArrayAsync();
 
             //writer.WritePropertyName("width");
-            writer.WriteValue(displayWidth);
+            writer.WriteValueAsync(displayWidth);
 
             //writer.WritePropertyName("height");
-            writer.WriteValue(displayHeight);
+            writer.WriteValueAsync(displayHeight);
 
-            writer.WriteEndArray();
+            writer.WriteEndArrayAsync();
 
-            writer.WritePropertyName("Persons");
-            writer.WriteStartArray();
+            writer.WritePropertyNameAsync("Persons");
+            writer.WriteStartArrayAsync();
 
             using (BodyFrame bodyFrame = e.FrameReference.AcquireFrame())
             {
@@ -372,9 +380,9 @@ namespace Microsoft.Samples.Kinect.BodyBasics
                     int penIndex = 0;
                     foreach (Body body in this.bodies)
                     {
-                        writer.WriteValue("Person "+ p++);
+                        writer.WriteValueAsync("Person "+ p++);
 
-                        writer.WriteStartArray();
+                        writer.WriteStartArrayAsync();
 
                         Pen drawPen = this.bodyColors[penIndex++];
 
@@ -391,7 +399,7 @@ namespace Microsoft.Samples.Kinect.BodyBasics
                             {
 
                                 //writer.WritePropertyName("keypoint");
-                                writer.WriteValue(jointType);
+                                writer.WriteValueAsync(jointType);
 
 
                                 // sometimes the depth(Z) of an inferred joint may show as negative
@@ -406,10 +414,10 @@ namespace Microsoft.Samples.Kinect.BodyBasics
                                 jointPoints[jointType] = new Point(depthSpacePoint.X, depthSpacePoint.Y);
 
                                 //writer.WritePropertyName("x");
-                                writer.WriteValue(depthSpacePoint.X);
+                                writer.WriteValueAsync(depthSpacePoint.X);
 
                                 //writer.WritePropertyName("y");
-                                writer.WriteValue(depthSpacePoint.Y);
+                                writer.WriteValueAsync(depthSpacePoint.Y);
 
                             }
 
@@ -423,7 +431,7 @@ namespace Microsoft.Samples.Kinect.BodyBasics
                             this.DrawHand(body.HandRightState, jointPoints[JointType.HandRight], dc);
                         }
 
-                        writer.WriteEndArray();
+                        writer.WriteEndArrayAsync();
                     }
 
                     // prevent drawing outside of our render area
@@ -431,11 +439,12 @@ namespace Microsoft.Samples.Kinect.BodyBasics
                 }
             }
 
-            writer.WriteEndArray();
-            writer.WriteEndObject();
+            writer.WriteEndArrayAsync();
+            writer.WriteEndObjectAsync();
 
-            writer.Flush();
-            Debug.Print(sw.ToString());
+            writer.FlushAsync();
+            //Debug.Print(sw.ToString());
+            socket.sendmsg(sw.ToString());
 
         }
 
