@@ -5,91 +5,60 @@ using System.Text;
 using System.Threading.Tasks;
 
 using System.Net.Sockets;
+using System.Collections.Concurrent;
+using System.Threading;
 
 
 
 namespace Microsoft.Samples.Kinect.BodyBasics
 {
-    class TCPSocket
+    public static class TCPSocket
     {
 
-        private TcpClient client;
-        private NetworkStream stream;
+        private static TcpClient client;
+        private static NetworkStream stream;
 
-        public TCPSocket(string host, int port)
+        private static BlockingCollection<byte[]> m_Queue = new BlockingCollection<byte[]>();
+
+        static TCPSocket()
         {
+
+            String[] args = App.Args;
+
             try
             {                
-                client = new TcpClient(host, port);
+                client = new TcpClient(args[0], Convert.ToInt16(args[1]));
                 stream = client.GetStream();
             }
             catch(Exception e)
             {
-                Console.WriteLine("exception: " + e.Message);
-            }            
-
-        }
-        public TCPSocket()
-        {
-            try
-            {                
-                client = new TcpClient("127.0.0.1", 4444);
+                client = new TcpClient("127.0.0.1", 4444); //default connect to localhost
                 stream = client.GetStream();
+                //Console.WriteLine("exception: " + e.Message);
             }
-            catch(Exception e)
+
+            var thread = new Thread(
+            () =>
             {
-                Console.WriteLine("exception: " + e.Message);
-            }            
+                //while (true) Console.WriteLine(m_Queue.Take());
+                while (true) {
+                    var tmp = m_Queue.Take();
+                    stream.Write(tmp, 0, tmp.Length);
+                }
+            });
+            thread.IsBackground = true;
+            thread.Start();
 
         }
 
-        ~TCPSocket()
-        {
-            // Close everything.
-            stream.Close();
-            client.Close();
-        }
-        
-        //void Connect()
-        //{
-        //    try
-        //    {
-
-
-        //        Console.WriteLine("Sent: {0}", message);
-
-        //        // Receive the TcpServer.response.
-
-        //        // Buffer to store the response bytes.
-        //        data = new Byte[256];
-
-        //        // String to store the response ASCII representation.
-        //        String responseData = String.Empty;
-
-        //        // Read the first batch of the TcpServer response bytes.
-        //        Int32 bytes = stream.Read(data, 0, data.Length);
-        //        responseData = System.Text.Encoding.ASCII.GetString(data, 0, bytes);
-        //        Console.WriteLine("Received: {0}", responseData);
-
-
-        //    }
-        //    catch (ArgumentNullException e)
-        //    {
-        //        Console.WriteLine("ArgumentNullException: {0}", e);
-        //    }
-        //    catch (SocketException e)
-        //    {
-        //        Console.WriteLine("SocketException: {0}", e);
-        //    }
-        //}
-
-        public void sendmsg(String msg)
+        public static void sendmsg(String msg)
         {
             // Translate the passed message into ASCII and store it as a Byte array.
             Byte[] data = System.Text.Encoding.ASCII.GetBytes(msg);
-         
+
             // Send the message to the connected TcpServer. 
-            stream.Write(data, 0, data.Length);
+            m_Queue.Add(data);
+
         }
 
     }

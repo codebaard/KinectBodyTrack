@@ -139,16 +139,16 @@ namespace Microsoft.Samples.Kinect.BodyBasics
         private JsonWriter writer;
 
         //UDP Network socket
-        private TCPSocket socket;
-
-        //commandline args
-        String[] args = App.Args;
+        //private TCPSocket socket;        
 
         /// <summary>
         /// Initializes a new instance of the MainWindow class.
         /// </summary>
         public MainWindow()
         {
+            //Added, JN 01.2020
+            ConsoleManager.Show();
+
             // one sensor is currently supported
             this.kinectSensor = KinectSensor.GetDefault();
 
@@ -244,8 +244,18 @@ namespace Microsoft.Samples.Kinect.BodyBasics
             };
 
             //args provided? use them. otherwise use localhost:4444
-            if (args.Length >= 2) this.socket = new TCPSocket(args[0], Convert.ToInt16(args[1]));
-            else this.socket = new TCPSocket();
+
+            //if (args.Length >= 2) this.socket = new TCPSocket(args[0], Convert.ToInt16(args[1]));
+            //else this.socket = new TCPSocket();
+
+            //try
+            //{
+            //    this.socket = new TCPSocket(args[0], Convert.ToInt16(args[1]));
+            //}
+            //catch(Exception e)
+            //{
+            //    this.socket = new TCPSocket();
+            //}
 
 
         }
@@ -380,6 +390,7 @@ namespace Microsoft.Samples.Kinect.BodyBasics
                     int penIndex = 0;
                     foreach (Body body in this.bodies)
                     {
+
                         writer.WriteValueAsync("Person "+ p++);
 
                         writer.WriteStartArrayAsync();
@@ -443,8 +454,8 @@ namespace Microsoft.Samples.Kinect.BodyBasics
             writer.WriteEndObjectAsync();
 
             writer.FlushAsync();
-            //Debug.Print(sw.ToString());
-            socket.sendmsg(sw.ToString());
+            nbConsole.WriteLine(sw.ToString());            
+            TCPSocket.sendmsg(sw.ToString());
 
         }
 
