@@ -40,7 +40,6 @@ namespace Microsoft.Samples.Kinect.BodyBasics
             var thread = new Thread(
             () =>
             {
-                //while (true) Console.WriteLine(m_Queue.Take());
                 while (true) {
                     var tmp = m_Queue.Take();
                     stream.Write(tmp, 0, tmp.Length);

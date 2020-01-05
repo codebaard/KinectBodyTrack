@@ -424,12 +424,18 @@ namespace Microsoft.Samples.Kinect.BodyBasics
                                 DepthSpacePoint depthSpacePoint = this.coordinateMapper.MapCameraPointToDepthSpace(position);
                                 jointPoints[jointType] = new Point(depthSpacePoint.X, depthSpacePoint.Y);
 
+                                writer.WriteStartArrayAsync();
+
                                 //writer.WritePropertyName("x");
                                 writer.WriteValueAsync(depthSpacePoint.X);
 
                                 //writer.WritePropertyName("y");
                                 writer.WriteValueAsync(depthSpacePoint.Y);
 
+                                //position in metres relativ to Kinect
+                                writer.WriteValueAsync(position.Z);
+
+                                writer.WriteEndArrayAsync();
                             }
 
                             //this is where we start ...
@@ -454,7 +460,7 @@ namespace Microsoft.Samples.Kinect.BodyBasics
             writer.WriteEndObjectAsync();
 
             writer.FlushAsync();
-            nbConsole.WriteLine(sw.ToString());            
+            //nbConsole.WriteLine(sw.ToString());            
             TCPSocket.sendmsg(sw.ToString());
 
         }
