@@ -81,14 +81,10 @@ namespace Microsoft.Samples.Kinect.BodyBasics
         /// </summary>
         private DrawingGroup drawingGroup;
 
-        private DrawingGroup colorFrame;
-
         /// <summary>
         /// Drawing image that we will display
         /// </summary>
         private DrawingImage imageSource;
-
-        private DrawingImage videoFrame;
 
         /// <summary>
         /// Active Kinect sensor
@@ -162,7 +158,7 @@ namespace Microsoft.Samples.Kinect.BodyBasics
         public MainWindow()
         {
             //Added, JN 01.2020
-            ConsoleManager.Show();
+            //ConsoleManager.Show();
 
             // one sensor is currently supported
             this.kinectSensor = KinectSensor.GetDefault();
@@ -186,8 +182,6 @@ namespace Microsoft.Samples.Kinect.BodyBasics
             FrameDescription frameDescription = this.kinectSensor.DepthFrameSource.FrameDescription;
 
             // get size of joint space
-            //this.displayWidth = frameDescription.Width;
-            //this.displayHeight = frameDescription.Height;
             this.displayWidth = colorFrameDescription.Width;
             this.displayHeight = colorFrameDescription.Height;
 
@@ -258,11 +252,6 @@ namespace Microsoft.Samples.Kinect.BodyBasics
             // Create an image source that we can use in our image control
             this.imageSource = new DrawingImage(this.drawingGroup);
 
-            this.colorFrame = new DrawingGroup();
-            colorFrame.Children.Add(new ImageDrawing(this.colorBitmap,new Rect(0,0,colorFrameDescription.Width, colorFrameDescription.Height)));
-
-            this.videoFrame = new DrawingImage(this.colorFrame);
-
             // use the window object as the view model in this simple example
             this.DataContext = this;
 
@@ -293,14 +282,6 @@ namespace Microsoft.Samples.Kinect.BodyBasics
             get
             {
                 return this.imageSource;
-            }
-        }
-
-        public ImageSource VideoFrame
-        {
-            get
-            {
-                return this.videoFrame;
             }
         }
 
@@ -411,20 +392,10 @@ namespace Microsoft.Samples.Kinect.BodyBasics
             if (dataReceived)
             {
                 using (DrawingContext dc = this.drawingGroup.Open())
-                //using (DrawingContext dc = (ImageDrawing)drawingGroup.Children[1])
                 {
                     // Draw a transparent background to set the render size
-                    //dc.DrawRectangle(Brushes.Black, null, new Rect(0.0, 0.0, this.displayWidth, this.displayHeight));
-                    //dc.DrawRectangle(Brushes.Transparent, null, new Rect(0.0, 0.0, this.displayWidth, this.displayHeight));
-
-                    //ImageDrawing img = (this.colorBitmap, new Rect(0, 0, colorBitmap.Width, colorBitmap.Height));
                     ImageDrawing img = new ImageDrawing(this.colorBitmap, new Rect(0, 0, this.displayWidth, this.displayHeight));
-                    //ImageDrawing img = (ImageDrawing)drawingGroup.Children[1];
-
-                    //dc.DrawImage(new DrawingImage(img, new Rect(0, 0, this.displayWidth, this.displayHeight)));
                     dc.DrawDrawing(img);
-
-                    //drawingGroup.Children.Add(new ImageDrawing(this.colorBitmap, new Rect(0, 0, this.colorBitmap.Width, this.colorBitmap.Height)));
 
                     int penIndex = 0;
                     foreach (Body body in this.bodies)
@@ -501,6 +472,7 @@ namespace Microsoft.Samples.Kinect.BodyBasics
             writer.FlushAsync();
             //nbConsole.WriteLine(sw.ToString());            
             TCPSocket.sendmsg(sw.ToString());
+            sb.Clear();
 
         }
 
