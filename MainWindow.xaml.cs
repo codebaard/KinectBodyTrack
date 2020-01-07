@@ -415,14 +415,14 @@ namespace Microsoft.Samples.Kinect.BodyBasics
                 {
                     // Draw a transparent background to set the render size
                     //dc.DrawRectangle(Brushes.Black, null, new Rect(0.0, 0.0, this.displayWidth, this.displayHeight));
-                    dc.DrawRectangle(Brushes.Transparent, null, new Rect(0.0, 0.0, this.displayWidth, this.displayHeight));
+                    //dc.DrawRectangle(Brushes.Transparent, null, new Rect(0.0, 0.0, this.displayWidth, this.displayHeight));
 
                     //ImageDrawing img = (this.colorBitmap, new Rect(0, 0, colorBitmap.Width, colorBitmap.Height));
-                    //ImageDrawing img = new ImageDrawing(this.colorBitmap, new Rect(0, 0, colorBitmap.Width/4, colorBitmap.Height/4));
+                    ImageDrawing img = new ImageDrawing(this.colorBitmap, new Rect(0, 0, this.displayWidth, this.displayHeight));
                     //ImageDrawing img = (ImageDrawing)drawingGroup.Children[1];
 
-                    //dc.DrawImage(new DrawingImage(img, new Rect(0, 0, colorBitmap.Width, colorBitmap.Height)));
-                    //dc.DrawDrawing(img);
+                    //dc.DrawImage(new DrawingImage(img, new Rect(0, 0, this.displayWidth, this.displayHeight)));
+                    dc.DrawDrawing(img);
 
                     //drawingGroup.Children.Add(new ImageDrawing(this.colorBitmap, new Rect(0, 0, this.colorBitmap.Width, this.colorBitmap.Height)));
 
