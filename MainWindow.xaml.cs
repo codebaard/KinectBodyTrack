@@ -81,10 +81,14 @@ namespace Microsoft.Samples.Kinect.BodyBasics
         /// </summary>
         private DrawingGroup drawingGroup;
 
+        private DrawingGroup colorFrame;
+
         /// <summary>
         /// Drawing image that we will display
         /// </summary>
         private DrawingImage imageSource;
+
+        private DrawingImage videoFrame;
 
         /// <summary>
         /// Active Kinect sensor
@@ -100,6 +104,17 @@ namespace Microsoft.Samples.Kinect.BodyBasics
         /// Reader for body frames
         /// </summary>
         private BodyFrameReader bodyFrameReader = null;
+
+        //JN 01.2020 -- Added for Colorframe presentation
+        /// <summary>
+        /// Reader for color frames
+        /// </summary>
+        private ColorFrameReader colorFrameReader = null;
+
+        /// <summary>
+        /// Bitmap to display
+        /// </summary>
+        private WriteableBitmap colorBitmap = null;
 
         /// <summary>
         /// Array for the bodies
@@ -155,12 +170,26 @@ namespace Microsoft.Samples.Kinect.BodyBasics
             // get the coordinate mapper
             this.coordinateMapper = this.kinectSensor.CoordinateMapper;
 
+            // open the reader for the color frames
+            this.colorFrameReader = this.kinectSensor.ColorFrameSource.OpenReader();
+
+            // wire handler for frame arrival
+            this.colorFrameReader.FrameArrived += this.Reader_ColorFrameArrived;
+
+            // create the colorFrameDescription from the ColorFrameSource using Bgra format
+            FrameDescription colorFrameDescription = this.kinectSensor.ColorFrameSource.CreateFrameDescription(ColorImageFormat.Bgra);
+
+            // create the bitmap to display
+            this.colorBitmap = new WriteableBitmap(colorFrameDescription.Width, colorFrameDescription.Height, 96.0, 96.0, PixelFormats.Bgr32, null);
+
             // get the depth (display) extents
             FrameDescription frameDescription = this.kinectSensor.DepthFrameSource.FrameDescription;
 
             // get size of joint space
-            this.displayWidth = frameDescription.Width;
-            this.displayHeight = frameDescription.Height;
+            //this.displayWidth = frameDescription.Width;
+            //this.displayHeight = frameDescription.Height;
+            this.displayWidth = colorFrameDescription.Width;
+            this.displayHeight = colorFrameDescription.Height;
 
             // open the reader for the body frames
             this.bodyFrameReader = this.kinectSensor.BodyFrameSource.OpenReader();
@@ -223,10 +252,16 @@ namespace Microsoft.Samples.Kinect.BodyBasics
                                                             : Properties.Resources.NoSensorStatusText;
 
             // Create the drawing group we'll use for drawing
-            this.drawingGroup = new DrawingGroup();
+            this.drawingGroup = new DrawingGroup();            
+            //drawingGroup.Children.Add(new ImageDrawing(null, new Rect(0, 0, colorFrameDescription.Width, colorFrameDescription.Height)));
 
             // Create an image source that we can use in our image control
             this.imageSource = new DrawingImage(this.drawingGroup);
+
+            this.colorFrame = new DrawingGroup();
+            colorFrame.Children.Add(new ImageDrawing(this.colorBitmap,new Rect(0,0,colorFrameDescription.Width, colorFrameDescription.Height)));
+
+            this.videoFrame = new DrawingImage(this.colorFrame);
 
             // use the window object as the view model in this simple example
             this.DataContext = this;
@@ -243,21 +278,6 @@ namespace Microsoft.Samples.Kinect.BodyBasics
                 Formatting = Formatting.Indented
             };
 
-            //args provided? use them. otherwise use localhost:4444
-
-            //if (args.Length >= 2) this.socket = new TCPSocket(args[0], Convert.ToInt16(args[1]));
-            //else this.socket = new TCPSocket();
-
-            //try
-            //{
-            //    this.socket = new TCPSocket(args[0], Convert.ToInt16(args[1]));
-            //}
-            //catch(Exception e)
-            //{
-            //    this.socket = new TCPSocket();
-            //}
-
-
         }
 
         /// <summary>
@@ -273,6 +293,14 @@ namespace Microsoft.Samples.Kinect.BodyBasics
             get
             {
                 return this.imageSource;
+            }
+        }
+
+        public ImageSource VideoFrame
+        {
+            get
+            {
+                return this.videoFrame;
             }
         }
 
@@ -353,10 +381,10 @@ namespace Microsoft.Samples.Kinect.BodyBasics
             writer.WriteStartArrayAsync();
 
             //writer.WritePropertyName("width");
-            writer.WriteValueAsync(displayWidth);
+            writer.WriteValueAsync(this.displayWidth);
 
             //writer.WritePropertyName("height");
-            writer.WriteValueAsync(displayHeight);
+            writer.WriteValueAsync(this.displayHeight);
 
             writer.WriteEndArrayAsync();
 
@@ -383,15 +411,26 @@ namespace Microsoft.Samples.Kinect.BodyBasics
             if (dataReceived)
             {
                 using (DrawingContext dc = this.drawingGroup.Open())
+                //using (DrawingContext dc = (ImageDrawing)drawingGroup.Children[1])
                 {
                     // Draw a transparent background to set the render size
-                    dc.DrawRectangle(Brushes.Black, null, new Rect(0.0, 0.0, this.displayWidth, this.displayHeight));
+                    //dc.DrawRectangle(Brushes.Black, null, new Rect(0.0, 0.0, this.displayWidth, this.displayHeight));
+                    dc.DrawRectangle(Brushes.Transparent, null, new Rect(0.0, 0.0, this.displayWidth, this.displayHeight));
+
+                    //ImageDrawing img = (this.colorBitmap, new Rect(0, 0, colorBitmap.Width, colorBitmap.Height));
+                    //ImageDrawing img = new ImageDrawing(this.colorBitmap, new Rect(0, 0, colorBitmap.Width/4, colorBitmap.Height/4));
+                    //ImageDrawing img = (ImageDrawing)drawingGroup.Children[1];
+
+                    //dc.DrawImage(new DrawingImage(img, new Rect(0, 0, colorBitmap.Width, colorBitmap.Height)));
+                    //dc.DrawDrawing(img);
+
+                    //drawingGroup.Children.Add(new ImageDrawing(this.colorBitmap, new Rect(0, 0, this.colorBitmap.Width, this.colorBitmap.Height)));
 
                     int penIndex = 0;
                     foreach (Body body in this.bodies)
                     {
 
-                        writer.WriteValueAsync("Person "+ p++);
+                        writer.WriteValueAsync("Person " + p++);
 
                         writer.WriteStartArrayAsync();
 
@@ -421,16 +460,16 @@ namespace Microsoft.Samples.Kinect.BodyBasics
                                     position.Z = InferredZPositionClamp;
                                 }
 
-                                DepthSpacePoint depthSpacePoint = this.coordinateMapper.MapCameraPointToDepthSpace(position);
-                                jointPoints[jointType] = new Point(depthSpacePoint.X, depthSpacePoint.Y);
+                                ColorSpacePoint colorSpacePoint = this.coordinateMapper.MapCameraPointToColorSpace(position);
+                                jointPoints[jointType] = new Point(colorSpacePoint.X, colorSpacePoint.Y);
 
                                 writer.WriteStartArrayAsync();
 
                                 //writer.WritePropertyName("x");
-                                writer.WriteValueAsync(depthSpacePoint.X);
+                                writer.WriteValueAsync(colorSpacePoint.X);
 
                                 //writer.WritePropertyName("y");
-                                writer.WriteValueAsync(depthSpacePoint.Y);
+                                writer.WriteValueAsync(colorSpacePoint.Y);
 
                                 //position in metres relativ to Kinect
                                 writer.WriteValueAsync(position.Z);
@@ -439,7 +478,7 @@ namespace Microsoft.Samples.Kinect.BodyBasics
                             }
 
                             //this is where we start ...
-                            
+
 
 
                             this.DrawBody(joints, jointPoints, dc, drawPen);
@@ -463,6 +502,41 @@ namespace Microsoft.Samples.Kinect.BodyBasics
             //nbConsole.WriteLine(sw.ToString());            
             TCPSocket.sendmsg(sw.ToString());
 
+        }
+
+        /// <summary>
+        /// Handles the color frame data arriving from the sensor
+        /// </summary>
+        /// <param name="sender">object sending the event</param>
+        /// <param name="e">event arguments</param>
+        private void Reader_ColorFrameArrived(object sender, ColorFrameArrivedEventArgs e)
+        {
+            // ColorFrame is IDisposable
+            using (ColorFrame colorFrame = e.FrameReference.AcquireFrame())
+            {
+                if (colorFrame != null)
+                {
+                    FrameDescription colorFrameDescription = colorFrame.FrameDescription;
+
+                    using (KinectBuffer colorBuffer = colorFrame.LockRawImageBuffer())
+                    {
+                        this.colorBitmap.Lock();
+
+                        // verify data and write the new color frame data to the display bitmap
+                        if ((colorFrameDescription.Width == this.colorBitmap.PixelWidth) && (colorFrameDescription.Height == this.colorBitmap.PixelHeight))
+                        {
+                            colorFrame.CopyConvertedFrameDataToIntPtr(
+                                this.colorBitmap.BackBuffer,
+                                (uint)(colorFrameDescription.Width * colorFrameDescription.Height * 4),
+                                ColorImageFormat.Bgra);
+
+                            this.colorBitmap.AddDirtyRect(new Int32Rect(0, 0, this.colorBitmap.PixelWidth, this.colorBitmap.PixelHeight));
+                        }
+
+                        this.colorBitmap.Unlock();
+                    }
+                }
+            }
         }
 
         /// <summary>
