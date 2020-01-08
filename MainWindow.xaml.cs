@@ -271,8 +271,9 @@ namespace Microsoft.Samples.Kinect.BodyBasics
             this.JsonObject.CaptureArea.widthColorFrame = this.displayWidth;
             this.JsonObject.CaptureArea.heightColorFrame = this.displayHeight;
 
-            this.JsonObject.CaptureArea.widthPoseData = frameDescription.Width;
-            this.JsonObject.CaptureArea.heightPoseData = frameDescription.Height;
+            //position estimation is only 512 * 412 -> mapped to 1920 x 1080
+            this.JsonObject.CaptureArea.widthPoseData = 1296;
+            this.JsonObject.CaptureArea.heightPoseData = 1080;
 
         }
 

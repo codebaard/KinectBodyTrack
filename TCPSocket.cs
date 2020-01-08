@@ -7,7 +7,8 @@ using System.Threading.Tasks;
 using System.Net.Sockets;
 using System.Collections.Concurrent;
 using System.Threading;
-
+using System.IO;
+using System.Windows.Forms;
 
 
 namespace Microsoft.Samples.Kinect.BodyBasics
@@ -20,34 +21,62 @@ namespace Microsoft.Samples.Kinect.BodyBasics
 
         private static BlockingCollection<byte[]> m_Queue = new BlockingCollection<byte[]>();
 
+        private static string remoteHost = null;
+        private static Int16 remotePort = 0;
+
+        private static int TIMEOUT = 1000;
+
         static TCPSocket()
         {
 
             String[] args = App.Args;
 
-            try
-            {                
-                client = new TcpClient(args[0], Convert.ToInt16(args[1]));
-                stream = client.GetStream();
-            }
-            catch(Exception e)
-            {
-                client = new TcpClient("127.0.0.1", 4444); //default connect to localhost
-                stream = client.GetStream();
-                //Console.WriteLine("exception: " + e.Message);
-            }
+            remoteHost = args[0];
+            remotePort = Convert.ToInt16(args[1]);
+
+            connectToServer();
 
             var thread = new Thread(
             () =>
             {
                 while (true) {
                     var tmp = m_Queue.Take();
-                    stream.Write(tmp, 0, tmp.Length);
+                    try
+                    {
+                        stream.Write(tmp, 0, tmp.Length);
+                    }
+                    catch (IOException e)
+                    {
+                        MessageBox.Show(e.Message + "Attempting to reconnect...", "Network Error");
+                        Thread.Sleep(TIMEOUT);
+                        connectToServer();
+                    }
+
                 }
             });
             thread.IsBackground = true;
             thread.Start();
 
+        }
+
+        static void connectToServer()
+        {
+            bool connected = false;
+
+            try
+            {
+                client = new TcpClient(remoteHost, remotePort);
+                stream = client.GetStream();
+
+                connected = true;
+            }
+            catch (Exception e)
+            {
+                //client = new TcpClient("127.0.0.1", 4444); //default connect to localhost
+                //stream = client.GetStream();
+                //Console.WriteLine("exception: " + e.Message);
+                connected = false;
+            }
         }
 
         public static void sendmsg(String msg)
