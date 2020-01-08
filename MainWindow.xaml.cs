@@ -149,8 +149,7 @@ namespace Microsoft.Samples.Kinect.BodyBasics
 
         private JsonWriter writer;
 
-        //UDP Network socket
-        //private TCPSocket socket;        
+        private jsonObjects JsonObject;       
 
         /// <summary>
         /// Initializes a new instance of the MainWindow class.
@@ -267,6 +266,14 @@ namespace Microsoft.Samples.Kinect.BodyBasics
                 Formatting = Formatting.Indented
             };
 
+            this.JsonObject = new jsonObjects();
+
+            this.JsonObject.CaptureArea.widthColorFrame = this.displayWidth;
+            this.JsonObject.CaptureArea.heightColorFrame = this.displayHeight;
+
+            this.JsonObject.CaptureArea.widthPoseData = frameDescription.Width;
+            this.JsonObject.CaptureArea.heightPoseData = frameDescription.Height;
+
         }
 
         /// <summary>
@@ -354,23 +361,10 @@ namespace Microsoft.Samples.Kinect.BodyBasics
             int p = 0;
             bool dataReceived = false;
 
-            writer.WriteStartObjectAsync();
+            this.JsonObject.Persons.Clear();
 
-            writer.WritePropertyNameAsync("capture_area");
-            //writer.WriteValue("capture_area");
-
-            writer.WriteStartArrayAsync();
-
-            //writer.WritePropertyName("width");
-            writer.WriteValueAsync(this.displayWidth);
-
-            //writer.WritePropertyName("height");
-            writer.WriteValueAsync(this.displayHeight);
-
-            writer.WriteEndArrayAsync();
-
-            writer.WritePropertyNameAsync("Persons");
-            writer.WriteStartArrayAsync();
+            //writer.WritePropertyNameAsync("Persons");
+            //writer.WriteStartArrayAsync();
 
             using (BodyFrame bodyFrame = e.FrameReference.AcquireFrame())
             {
@@ -400,16 +394,15 @@ namespace Microsoft.Samples.Kinect.BodyBasics
                     int penIndex = 0;
                     foreach (Body body in this.bodies)
                     {
-
-                        writer.WriteValueAsync("Person " + p++);
-
                         writer.WriteStartArrayAsync();
 
                         Pen drawPen = this.bodyColors[penIndex++];
 
                         if (body.IsTracked)
                         {
-                            this.DrawClippedEdges(body, dc);
+                            this.JsonObject.Persons.Add(new person(p++));
+
+                            this.DrawClippedEdges(body, dc); // 1296 x 1080
 
                             IReadOnlyDictionary<JointType, Joint> joints = body.Joints;
 
@@ -418,9 +411,10 @@ namespace Microsoft.Samples.Kinect.BodyBasics
 
                             foreach (JointType jointType in joints.Keys)
                             {
+                                poseData PoseData = new poseData();
 
                                 //writer.WritePropertyName("keypoint");
-                                writer.WriteValueAsync(jointType);
+                                //writer.WriteValueAsync(jointType);
 
 
                                 // sometimes the depth(Z) of an inferred joint may show as negative
@@ -434,23 +428,26 @@ namespace Microsoft.Samples.Kinect.BodyBasics
                                 ColorSpacePoint colorSpacePoint = this.coordinateMapper.MapCameraPointToColorSpace(position);
                                 jointPoints[jointType] = new Point(colorSpacePoint.X, colorSpacePoint.Y);
 
-                                writer.WriteStartArrayAsync();
+                                //writer.WriteStartArrayAsync();
 
-                                //writer.WritePropertyName("x");
-                                writer.WriteValueAsync(colorSpacePoint.X);
+                                ////writer.WritePropertyName("x");
+                                //writer.WriteValueAsync(colorSpacePoint.X);
 
-                                //writer.WritePropertyName("y");
-                                writer.WriteValueAsync(colorSpacePoint.Y);
+                                ////writer.WritePropertyName("y");
+                                //writer.WriteValueAsync(colorSpacePoint.Y);
 
-                                //position in metres relativ to Kinect
-                                writer.WriteValueAsync(position.Z);
+                                ////position in metres relativ to Kinect
+                                //writer.WriteValueAsync(position.Z);
 
-                                writer.WriteEndArrayAsync();
+                                //writer.WriteEndArrayAsync();
+
+                                PoseData.index = (int)jointType;
+                                PoseData.x = (int)colorSpacePoint.X;
+                                PoseData.y = (int)colorSpacePoint.Y;
+                                PoseData.z = position.Z;
+
+                                this.JsonObject.Persons[this.JsonObject.Persons.Count - 1].PoseData[PoseData.index] = PoseData;
                             }
-
-                            //this is where we start ...
-
-
 
                             this.DrawBody(joints, jointPoints, dc, drawPen);
 
@@ -458,7 +455,7 @@ namespace Microsoft.Samples.Kinect.BodyBasics
                             this.DrawHand(body.HandRightState, jointPoints[JointType.HandRight], dc);
                         }
 
-                        writer.WriteEndArrayAsync();
+                        //writer.WriteEndArrayAsync();
                     }
 
                     // prevent drawing outside of our render area
@@ -466,12 +463,13 @@ namespace Microsoft.Samples.Kinect.BodyBasics
                 }
             }
 
-            writer.WriteEndArrayAsync();
-            writer.WriteEndObjectAsync();
+            //writer.WriteEndArrayAsync();
+            //writer.WriteEndObjectAsync();
 
-            writer.FlushAsync();
+            //writer.FlushAsync();
             //nbConsole.WriteLine(sw.ToString());            
-            TCPSocket.sendmsg(sw.ToString());
+            string jsonString = JsonConvert.SerializeObject(this.JsonObject);
+            TCPSocket.sendmsg(jsonString);
             sb.Clear();
 
         }
