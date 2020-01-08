@@ -132,6 +132,9 @@ namespace Microsoft.Samples.Kinect.BodyBasics
         /// </summary>
         private int displayHeight;
 
+        private int trackingWidth;
+        private int trackingHeight;
+
         /// <summary>
         /// List of colors for each body tracked
         /// </summary>
@@ -179,6 +182,10 @@ namespace Microsoft.Samples.Kinect.BodyBasics
 
             // get the depth (display) extents
             FrameDescription frameDescription = this.kinectSensor.DepthFrameSource.FrameDescription;
+
+            //dirty hack for camera frame mapping
+            trackingWidth = 1200; //1296
+            trackingHeight = 1080;
 
             // get size of joint space
             this.displayWidth = colorFrameDescription.Width;
@@ -454,6 +461,7 @@ namespace Microsoft.Samples.Kinect.BodyBasics
 
                             this.DrawHand(body.HandLeftState, jointPoints[JointType.HandLeft], dc);
                             this.DrawHand(body.HandRightState, jointPoints[JointType.HandRight], dc);
+
                         }
 
                         //writer.WriteEndArrayAsync();
@@ -461,6 +469,7 @@ namespace Microsoft.Samples.Kinect.BodyBasics
 
                     // prevent drawing outside of our render area
                     this.drawingGroup.ClipGeometry = new RectangleGeometry(new Rect(0.0, 0.0, this.displayWidth, this.displayHeight));
+                    this.drawLaneBorders(dc);
                 }
             }
 
@@ -643,6 +652,36 @@ namespace Microsoft.Samples.Kinect.BodyBasics
                     null,
                     new Rect(this.displayWidth - ClipBoundsThickness, 0, ClipBoundsThickness, this.displayHeight));
             }
+        }
+
+        private void drawLaneBorders(DrawingContext dc)
+        {
+            int widthDelta = this.displayWidth - this.trackingWidth;
+            int laneWidth = this.trackingWidth / 4;
+
+            dc.DrawRectangle(
+                Brushes.Red,
+                null,
+                new Rect(widthDelta / 2, 0, 2, this.displayHeight));
+
+            dc.DrawRectangle(
+                Brushes.Red,
+                null,
+                new Rect(widthDelta / 2 + laneWidth, 0, 2, this.displayHeight));
+
+           dc.DrawRectangle(
+                Brushes.Red,
+                null,
+                new Rect(widthDelta / 2 + 2 * laneWidth, 0, 2, this.displayHeight));
+
+            dc.DrawRectangle(
+                Brushes.Red,
+                null,
+                new Rect(widthDelta / 2 + 3 * laneWidth, 0, 2, this.displayHeight));
+            dc.DrawRectangle(
+                Brushes.Red,
+                null,
+                new Rect(widthDelta / 2 + 4 * laneWidth, 0, 2, this.displayHeight));
         }
 
         /// <summary>

@@ -44,10 +44,12 @@ namespace Microsoft.Samples.Kinect.BodyBasics
                     try
                     {
                         stream.Write(tmp, 0, tmp.Length);
+                        stream.Flush();
+                        Thread.Sleep(1); //prevent NIC from flooding remote application
                     }
                     catch (IOException e)
                     {
-                        MessageBox.Show(e.Message + "Attempting to reconnect...", "Network Error");
+                        MessageBox.Show(e.Message + " - Attempting to reconnect...", "Network Error");
                         Thread.Sleep(TIMEOUT);
                         connectToServer();
                     }
@@ -62,6 +64,7 @@ namespace Microsoft.Samples.Kinect.BodyBasics
         static void connectToServer()
         {
             bool connected = false;
+            stream = null;
 
             try
             {

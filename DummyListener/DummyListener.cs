@@ -20,7 +20,7 @@ namespace DummyListener
             try
             {
                 // Set the TcpListener on port 4444.
-                Int32 port = 4444;
+                Int32 port = 3000;
                 IPAddress localAddr = IPAddress.Parse("127.0.0.1");
 
                 // TcpListener server = new TcpListener(port);
