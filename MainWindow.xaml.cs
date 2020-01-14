@@ -479,7 +479,7 @@ namespace Microsoft.Samples.Kinect.BodyBasics
             //writer.FlushAsync();
             //nbConsole.WriteLine(sw.ToString());            
             string jsonString = JsonConvert.SerializeObject(this.JsonObject);
-            TCPSocket.sendmsg(jsonString);
+            TCPSocket.sendmsg(jsonString + "\n");
             sb.Clear();
 
         }

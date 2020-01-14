@@ -45,4 +45,5 @@ namespace Microsoft.Samples.Kinect.BodyBasics
         public int y; //pixel
         public float z; //metres       
     }
+
 }
