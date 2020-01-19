@@ -1,8 +1,7 @@
-﻿//------------------------------------------------------------------------------
-// <copyright file="MainWindow.xaml.cs" company="Microsoft">
-//     Copyright (c) Microsoft Corporation.  All rights reserved.
-// </copyright>
-//------------------------------------------------------------------------------
+﻿#define DEBUG
+
+
+//code is partly boilerplate code from Kinect v2 SDK. See SDK documentation for more info
 
 namespace Microsoft.Samples.Kinect.BodyBasics
 {
@@ -160,8 +159,9 @@ namespace Microsoft.Samples.Kinect.BodyBasics
         public MainWindow()
         {
             //Added, JN 01.2020
-            //ConsoleManager.Show();
-
+#if DEBUG
+            ConsoleManager.Show();
+#endif
             // one sensor is currently supported
             this.kinectSensor = KinectSensor.GetDefault();
 
@@ -264,7 +264,6 @@ namespace Microsoft.Samples.Kinect.BodyBasics
             // initialize the components (controls) of the window
             this.InitializeComponent();
 
-            //JN, 12.2019 - Added Code
             //json stuff - JN 12.2019
             this.sb = new StringBuilder();
             this.sw = new StringWriter(sb);
@@ -371,9 +370,6 @@ namespace Microsoft.Samples.Kinect.BodyBasics
 
             this.JsonObject.Persons.Clear();
 
-            //writer.WritePropertyNameAsync("Persons");
-            //writer.WriteStartArrayAsync();
-
             using (BodyFrame bodyFrame = e.FrameReference.AcquireFrame())
             {
                 if (bodyFrame != null)
@@ -421,10 +417,6 @@ namespace Microsoft.Samples.Kinect.BodyBasics
                             {
                                 poseData PoseData = new poseData();
 
-                                //writer.WritePropertyName("keypoint");
-                                //writer.WriteValueAsync(jointType);
-
-
                                 // sometimes the depth(Z) of an inferred joint may show as negative
                                 // clamp down to 0.1f to prevent coordinatemapper from returning (-Infinity, -Infinity)
                                 CameraSpacePoint position = joints[jointType].Position;
@@ -435,19 +427,6 @@ namespace Microsoft.Samples.Kinect.BodyBasics
 
                                 ColorSpacePoint colorSpacePoint = this.coordinateMapper.MapCameraPointToColorSpace(position);
                                 jointPoints[jointType] = new Point(colorSpacePoint.X, colorSpacePoint.Y);
-
-                                //writer.WriteStartArrayAsync();
-
-                                ////writer.WritePropertyName("x");
-                                //writer.WriteValueAsync(colorSpacePoint.X);
-
-                                ////writer.WritePropertyName("y");
-                                //writer.WriteValueAsync(colorSpacePoint.Y);
-
-                                ////position in metres relativ to Kinect
-                                //writer.WriteValueAsync(position.Z);
-
-                                //writer.WriteEndArrayAsync();
 
                                 PoseData.index = (int)jointType;
                                 PoseData.x = (int)colorSpacePoint.X;
@@ -464,7 +443,6 @@ namespace Microsoft.Samples.Kinect.BodyBasics
 
                         }
 
-                        //writer.WriteEndArrayAsync();
                     }
 
                     // prevent drawing outside of our render area
@@ -473,13 +451,11 @@ namespace Microsoft.Samples.Kinect.BodyBasics
                 }
             }
 
-            //writer.WriteEndArrayAsync();
-            //writer.WriteEndObjectAsync();
-
-            //writer.FlushAsync();
-            //nbConsole.WriteLine(sw.ToString());            
+#if DEBUG
+            nbConsole.WriteLine(sw.ToString());            
+#endif
             string jsonString = JsonConvert.SerializeObject(this.JsonObject);
-            TCPSocket.sendmsg(jsonString + "\n");
+            TCPSocket.sendmsg(jsonString + "\n"); //add LF because it makes server side parsing easier
             sb.Clear();
 
         }

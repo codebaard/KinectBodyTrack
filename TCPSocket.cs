@@ -1,4 +1,7 @@
-﻿using System;
+﻿
+#define DEBUG
+
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -10,11 +13,18 @@ using System.Threading;
 using System.IO;
 using System.Windows.Forms;
 
+using System.Diagnostics;
+
+
+
 
 namespace Microsoft.Samples.Kinect.BodyBasics
 {
     public static class TCPSocket
     {
+        //this class deals with all the network traffic.
+        //it works with a threadsafe blocking collection to enhance asychronous behaviour
+
 
         private static TcpClient client;
         private static NetworkStream stream;
@@ -24,15 +34,28 @@ namespace Microsoft.Samples.Kinect.BodyBasics
         private static string remoteHost = null;
         private static Int16 remotePort = 0;
 
-        private static int TIMEOUT = 1000;
+        private const int TIMEOUT = 1000;
+        private const string LOCALHOST = "127.0.0.1";
+        private const int LOCALPORT = 3000;
 
         static TCPSocket()
         {
 
-            String[] args = App.Args;
+            try
+            {
+                String[] args = App.Args;
+                remoteHost = args[0];
+                remotePort = Convert.ToInt16(args[1]);
+            }
+            catch
+            {
+                //no cli parameters provided - using localhost
+                //WARNING: Listener must be available! -> autolaunch project "DummyListener"
+                remoteHost = LOCALHOST;
+                remotePort = LOCALPORT;
 
-            remoteHost = args[0];
-            remotePort = Convert.ToInt16(args[1]);
+                DummyListenerHandler.startApplication();
+            }
 
             connectToServer();
 
@@ -40,7 +63,7 @@ namespace Microsoft.Samples.Kinect.BodyBasics
             () =>
             {
                 while (true) {
-                    var tmp = m_Queue.Take();
+                    var tmp = m_Queue.Take(); //take next element - strictly FIFO
                     try
                     {
                         stream.Write(tmp, 0, tmp.Length);
@@ -49,6 +72,7 @@ namespace Microsoft.Samples.Kinect.BodyBasics
                     }
                     catch (IOException e)
                     {
+                        //connection lost -> trying to reconnect after user acknowledged
                         MessageBox.Show(e.Message + " - Attempting to reconnect...", "Network Error");
                         Thread.Sleep(TIMEOUT);
                         connectToServer();
@@ -63,22 +87,22 @@ namespace Microsoft.Samples.Kinect.BodyBasics
 
         static void connectToServer()
         {
-            bool connected = false;
             stream = null;
 
             try
             {
                 client = new TcpClient(remoteHost, remotePort);
                 stream = client.GetStream();
-
-                connected = true;
             }
             catch (Exception e)
             {
-                //client = new TcpClient("127.0.0.1", 4444); //default connect to localhost
-                //stream = client.GetStream();
-                //Console.WriteLine("exception: " + e.Message);
-                connected = false;
+                //this happens only, when the remotehost is localhost and the listener is closed by the user deliberately
+                //it will terminate the programm to ensure nothing unforeseeable happens since we cannot assume the right state of every component
+#if (DEBUG)
+                Console.WriteLine("exception: " + e.Message);
+#endif
+                client = null;
+                stream = null;
             }
         }
 
@@ -89,6 +113,30 @@ namespace Microsoft.Samples.Kinect.BodyBasics
 
             // Send the message to the connected TcpServer. 
             m_Queue.Add(data);
+
+        }
+
+    }
+
+    public static class DummyListenerHandler{
+
+        //path is supposed to be constant since its part of the visual studio solution"
+        private const string path = ".\\..\\..\\..\\DummyListener\\bin\\Release\\DummyListener.exe";
+
+        public static void startApplication()
+        {
+            try
+            {
+                using (Process myProcess = new Process())
+                {
+                    myProcess.StartInfo.FileName = path;
+                    myProcess.Start();
+                }
+            }
+            catch (Exception e)
+            {
+                Console.WriteLine(e.Message);
+            }
 
         }
 

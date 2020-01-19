@@ -6,6 +6,9 @@ using System.Threading.Tasks;
 
 namespace Microsoft.Samples.Kinect.BodyBasics
 {
+
+    //This class is the JSON Object, which is sent to the server on every frame update
+
     class jsonObjects
     {
         public jsonObjects()
